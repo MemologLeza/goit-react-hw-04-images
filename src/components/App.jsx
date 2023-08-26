@@ -1,93 +1,94 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { getImgBySearch } from 'SearchAPI/SearchAPI';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGallery/ImageGallery';
 import Loader from './Loader/Loader';
 import Modal from './Modal/Modal';
 import ButtonLoadMore from './ButtonLoadMore/ButtonLoadMore';
-class App extends Component {
-  state = {
-    searchQuery: '',
-    imgs: [],
-    isLoading: false,
-    page: 1,
-    total: null,
-    showModal: false,
-    selectedImg: null,
-    error: '',
-  };
-  componentDidUpdate(_, prevState) {
-    if (
-      prevState.page !== this.state.page ||
-      prevState.searchQuery !== this.state.searchQuery
-    ) {
-      this.handleSearchImg();
-    }
-  }
-  handleSearch = query => {
-    this.setState({ searchQuery: query, imgs: [], page: 1 });
-  };
-  handleSearchImg = async () => {
-    try {
-      this.setState({ isLoading: true });
-      const data = await getImgBySearch(
-        this.state.searchQuery,
-        this.state.page
-      );
+import React from 'react';
 
-      const newData = data.hits.map(item => ({
-        id: item.id,
-        largeImageURL: item.largeImageURL,
-        webformatURL: item.webformatURL,
-      }));
-      this.setState(prevState => ({
-        imgs: [...prevState.imgs, ...newData],
-        isLoading: false,
-        total: data.total,
-      }));
-    } catch (error) {
-      this.setState({ error: error.message, isLoading: false });
-      console.log(error);
+const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [imgs, setImgs] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedImg, setSelectedImg] = useState(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const handleSearchImg = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getImgBySearch(searchQuery, page);
+
+        const newData = data.hits.map(item => ({
+          id: item.id,
+          largeImageURL: item.largeImageURL,
+          webformatURL: item.webformatURL,
+        }));
+        setImgs(prev => [...prev, ...newData]);
+        setIsLoading(false);
+        setTotal(data.total);
+      } catch (error) {
+        setError(error.message);
+        setIsLoading(false);
+        console.log(error);
+      }
+    };
+    searchQuery && handleSearchImg();
+  }, [page, searchQuery]);
+  useEffect(() => {
+    if (showModal) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
     }
-  };
-  handleClickLoadMore = () => {
-    this.setState(prev => ({
-      page: prev.page + 1,
-    }));
-  };
-  openModal = image => {
-    this.setState({ showModal: true, selectedImg: image });
+  }, [showModal]);
+
+  const handleSearch = query => {
+    setSearchQuery(query);
+    setImgs([]);
+    setPage(1);
   };
 
-  closeModal = () => {
-    this.setState({ showModal: false, selectedImg: null });
+  const handleClickLoadMore = () => {
+    setPage(prev => prev + 1);
   };
-  render() {
-    const { imgs, error, isLoading, total, showModal, selectedImg } =
-      this.state;
-    return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gridGap: '16px',
-          paddingBottom: '24px',
-          color: '#010101',
-        }}
-      >
-        <Searchbar handleSearch={this.handleSearch} />
-        {error && <h2>{error}</h2>}
-        <ImageGallery imgs={imgs} openModal={this.openModal} />
-        {this.state.searchQuery && !isLoading && imgs?.length === 0 && (
-          <h2>Images not found((</h2>
-        )}
-        <Loader isLoading={isLoading} />
-        {imgs.length !== 0 && imgs.length < total && (
-          <ButtonLoadMore handleClickLoadMore={this.handleClickLoadMore} />
-        )}
-        {showModal && <Modal img={selectedImg} onClose={this.closeModal} />}
-      </div>
-    );
-  }
-}
+  const openModal = image => {
+    setShowModal(true);
+    setSelectedImg(image);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedImg(null);
+  };
+
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gridGap: '16px',
+        paddingBottom: '24px',
+        color: '#010101',
+        overflow: showModal ? 'hidden' : 'auto',
+      }}
+    >
+      <Searchbar handleSearch={handleSearch} />
+      {error && <h2>{error}</h2>}
+      <ImageGallery imgs={imgs} openModal={openModal} />
+      {searchQuery && !isLoading && imgs?.length === 0 && (
+        <h2>Images not found((</h2>
+      )}
+      <Loader isLoading={isLoading} />
+      {imgs.length !== 0 && imgs.length < total && !isLoading && (
+        <ButtonLoadMore handleClickLoadMore={handleClickLoadMore} />
+      )}
+      {showModal && <Modal img={selectedImg} onClose={closeModal} />}
+    </div>
+  );
+};
+
 export default App;
