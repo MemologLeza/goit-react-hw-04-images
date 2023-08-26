@@ -73,7 +73,6 @@ const App = () => {
         gridGap: '16px',
         paddingBottom: '24px',
         color: '#010101',
-        overflow: showModal ? 'hidden' : 'auto',
       }}
     >
       <Searchbar handleSearch={handleSearch} />
